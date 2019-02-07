@@ -12,10 +12,13 @@
 
     - name: Add hosts
       add_host:
-        hostname: "{{ item.ip }}"
+        name: "{{ item.ip }}_{{ item.user }}"
+        ansible_host: "{{ item.ip }}"
         ansible_user: "{{ item.user }}"
         groups: cpanelusers
       with_items: "{{ cpanelaccounts.json.acct }}"
+      changed_when: False
+      no_log: True
 
 - name: Connect to cPanel hosts
   hosts: cpanelusers
