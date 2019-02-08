@@ -1,0 +1,16 @@
+---
+- name: Connect to cPanel hosts
+  hosts: cpanelusers
+  become: false
+  tasks:
+    - name: "Add public key for demouser1"
+      authorized_key:
+        user: "{{ ansible_user }}"
+        state: present
+        key: "ssh-rsa AAAA..... demouser1@localhost"
+
+    - name: "Add public key for demouser2"
+      authorized_key:
+        user: "{{ ansible_user }}"
+        state: present
+        key: "ssh-rsa AAAA..... demouser2@localhost"

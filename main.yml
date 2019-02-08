@@ -1,31 +1,9 @@
 ---
-- name: Authorized Keys Setup Playbook
-  hosts: 127.0.0.1
-  connection: local
-  become: false
-  tasks:
-    - name: Get cPanel users
-      uri: url="https://{{ whmhostname }}:2087/json-api/listaccts"
-        method=GET
-        HEADER_Authorization="whm {{ whmusername }}:{{ whmtoken }}"
-      register: cpanelaccounts
+- name: Setup localhost
+  include: tasks/setup-localhost.yml
 
-    - name: Add hosts
-      add_host:
-        name: "{{ item.ip }}_{{ item.user }}"
-        ansible_host: "{{ item.ip }}"
-        ansible_user: "{{ item.user }}"
-        groups: cpanelusers
-      with_items: "{{ cpanelaccounts.json.acct }}"
-      changed_when: False
-      no_log: True
+- name: Run cPanel tasks
+  include: tasks/cpanel-tasks.yml
 
-- name: Connect to cPanel hosts
-  hosts: cpanelusers
-  become: false
-  tasks:
-    - name: "Copy authorized_keys file"
-      copy:
-        src: authorized_keys
-        dest: ~/.ssh/authorized_keys
-        mode: 0644
+- name: Cleanup localhost
+  include: tasks/cleanup-localhost.yml

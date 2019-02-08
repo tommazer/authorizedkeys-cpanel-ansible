@@ -1,0 +1,58 @@
+---
+- name: Cleanup localhost
+  hosts: 127.0.0.1
+  connection: local
+  become: false
+  gather_facts: false
+  vars:
+    keyname: "ansiblekey{{lookup('pipe','date \"+%Y%m%d\"')}}"
+  tasks:
+    - name: Delete key files
+      file:
+        state: absent
+        path: "{{ item }}"
+      with_items:
+        - "/tmp/id_ssh_rsa.pub"
+        - "/tmp/id_ssh_rsa"
+
+    - name: "Delete SSH Key Private"
+      uri:
+        url: "https://{{ whmhostname }}:2087/json-api/cpanel"
+        method: "POST"
+        headers:
+          Authorization: "whm {{ whmusername }}:{{ whmtoken }}"
+        body:
+          cpanel_jsonapi_user: "{{ item.user }}"
+          cpanel_jsonapi_apiversion: "2"
+          cpanel_jsonapi_module: "SSH"
+          cpanel_jsonapi_func: "delkey"
+          name: "{{ keyname }}"
+        body_format: form-urlencoded
+      register: sshkeydel
+      with_items: "{{ cpanelaccounts.json.acct }}"
+
+    - name: "Delete SSH Key Public"
+      uri:
+        url: "https://{{ whmhostname }}:2087/json-api/cpanel"
+        method: "POST"
+        headers:
+          Authorization: "whm {{ whmusername }}:{{ whmtoken }}"
+        body:
+          cpanel_jsonapi_user: "{{ item.user }}"
+          cpanel_jsonapi_apiversion: "2"
+          cpanel_jsonapi_module: "SSH"
+          cpanel_jsonapi_func: "delkey"
+          name: "{{ keyname }}.pub"
+        body_format: form-urlencoded
+      register: sshkeydelpublic
+      with_items: "{{ cpanelaccounts.json.acct }}"
+
+    - name: "Debug"
+      debug:
+        var: sshkeydel
+        verbosity: 1
+
+    - name: "Debug"
+      debug:
+        var: sshkeydelpublic
+        verbosity: 1
