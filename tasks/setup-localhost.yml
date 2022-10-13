@@ -1,100 +1,93 @@
-- name: Setup localhost
-  hosts: 127.0.0.1
-  connection: local
-  become: false
-  gather_facts: false
-  vars:
-    keyname: "ansiblekey{{lookup('pipe','date \"+%Y%m%d\"')}}"
-  tasks:
-    - name: Get cPanel users
-      uri:
-        url: "https://{{ whmhostname }}:2087/json-api/listaccts"
-        method: "GET"
-        headers:
-          Authorization: "whm {{ whmusername }}:{{ whmtoken }}"
-      register: cpanelaccounts
+---
+- name: Get cPanel users
+  uri:
+    url: "https://{{ whmhostname }}:2087/json-api/listaccts"
+    method: "GET"
+    headers:
+      Authorization: "whm {{ whmusername }}:{{ whmtoken }}"
+  register: cpanelaccounts
 
-    - name: Delete key files
-      file:
-        state: absent
-        path: "{{ item }}"
-      with_items:
-        - "/tmp/id_ssh_rsa.pub"
-        - "/tmp/id_ssh_rsa"
+- name: Delete key files
+  file:
+    state: absent
+    path: "{{ item }}"
+  with_items:
+    - "/tmp/id_ssh_rsa.pub"
+    - "/tmp/id_ssh_rsa"
 
-    - name: Generate temp SSH Keys
-      command: ssh-keygen -f /tmp/id_ssh_rsa -P ""
+- name: Generate temp SSH Keys
+  command: ssh-keygen -f /tmp/id_ssh_rsa -P ""
 
-    - name: "Import SSH Key Private"
-      uri:
-        url: "https://{{ whmhostname }}:2087/json-api/cpanel"
-        method: "POST"
-        headers:
-          Authorization: "whm {{ whmusername }}:{{ whmtoken }}"
-        body:
-          cpanel_jsonapi_user: "{{ item.user }}"
-          cpanel_jsonapi_apiversion: "2"
-          cpanel_jsonapi_module: "SSH"
-          cpanel_jsonapi_func: "importkey"
-          name: "{{ keyname }}"
-          key: "{{ lookup('file', '/tmp/id_ssh_rsa') }}"
-        body_format: form-urlencoded
-      register: sshkeyimportprivate
-      with_items: "{{ cpanelaccounts.json.acct }}"
+- name: "Import SSH Key Private"
+  uri:
+    url: "https://{{ whmhostname }}:2087/json-api/cpanel"
+    method: "POST"
+    headers:
+      Authorization: "whm {{ whmusername }}:{{ whmtoken }}"
+    body:
+      cpanel_jsonapi_user: "{{ item.user }}"
+      cpanel_jsonapi_apiversion: "2"
+      cpanel_jsonapi_module: "SSH"
+      cpanel_jsonapi_func: "importkey"
+      name: "{{ keyname }}"
+      key: "{{ lookup('file', '/tmp/id_ssh_rsa') }}"
+    body_format: form-urlencoded
+  register: sshkeyimportprivate
+  with_items: "{{ cpanelaccounts.json.acct }}"
 
-    - name: "Import SSH Key Public"
-      uri:
-        url: "https://{{ whmhostname }}:2087/json-api/cpanel"
-        method: "POST"
-        headers:
-          Authorization: "whm {{ whmusername }}:{{ whmtoken }}"
-        body:
-          cpanel_jsonapi_user: "{{ item.user }}"
-          cpanel_jsonapi_apiversion: "2"
-          cpanel_jsonapi_module: "SSH"
-          cpanel_jsonapi_func: "importkey"
-          name: "{{ keyname }}"
-          key: "{{ lookup('file', '/tmp/id_ssh_rsa.pub') }}"
-        body_format: form-urlencoded
-      register: sshkeyimportpublic
-      with_items: "{{ cpanelaccounts.json.acct }}"
-      no_log: True
+- name: "Import SSH Key Public"
+  uri:
+    url: "https://{{ whmhostname }}:2087/json-api/cpanel"
+    method: "POST"
+    headers:
+      Authorization: "whm {{ whmusername }}:{{ whmtoken }}"
+    body:
+      cpanel_jsonapi_user: "{{ item.user }}"
+      cpanel_jsonapi_apiversion: "2"
+      cpanel_jsonapi_module: "SSH"
+      cpanel_jsonapi_func: "importkey"
+      name: "{{ keyname }}"
+      key: "{{ lookup('file', '/tmp/id_ssh_rsa.pub') }}"
+    body_format: form-urlencoded
+  register: sshkeyimportpublic
+  with_items: "{{ cpanelaccounts.json.acct }}"
+  no_log: True
 
-    - name: "Debug"
-      debug:
-        var: sshkeyimportpublic
-        verbosity: 1
+- name: "Debug"
+  debug:
+    var: sshkeyimportpublic
+    verbosity: 1
 
-    - name: "Auth SSH Keys"
-      uri:
-        url: "https://{{ whmhostname }}:2087/json-api/cpanel"
-        method: "POST"
-        headers:
-          Authorization: "whm {{ whmusername }}:{{ whmtoken }}"
-        body:
-          cpanel_jsonapi_user: "{{ item.user }}"
-          cpanel_jsonapi_apiversion: "2"
-          cpanel_jsonapi_module: "SSH"
-          cpanel_jsonapi_func: "authkey"
-          key: "{{ keyname }}.pub"
-          action: "authorize"
-        body_format: form-urlencoded
-      register: sshkeyauth
-      with_items: "{{ cpanelaccounts.json.acct }}"
-      no_log: True
+- name: "Auth SSH Keys"
+  uri:
+    url: "https://{{ whmhostname }}:2087/json-api/cpanel"
+    method: "POST"
+    headers:
+      Authorization: "whm {{ whmusername }}:{{ whmtoken }}"
+    body:
+      cpanel_jsonapi_user: "{{ item.user }}"
+      cpanel_jsonapi_apiversion: "2"
+      cpanel_jsonapi_module: "SSH"
+      cpanel_jsonapi_func: "authkey"
+      key: "{{ keyname }}.pub"
+      action: "authorize"
+    body_format: form-urlencoded
+  register: sshkeyauth
+  with_items: "{{ cpanelaccounts.json.acct }}"
+  no_log: True
 
-    - name: "Debug"
-      debug:
-        var: sshkeyauth
-        verbosity: 1
+- name: "Debug"
+  debug:
+    var: sshkeyauth
+    verbosity: 1
 
-    - name: Add hosts
-      add_host:
-        name: "{{ item.ip }}_{{ item.user }}"
-        ansible_host: "{{ item.ip }}"
-        ansible_user: "{{ item.user }}"
-        ansible_ssh_private_key_file: "/tmp/id_ssh_rsa"
-        groups: cpanelusers
-      with_items: "{{ cpanelaccounts.json.acct }}"
-      changed_when: False
-      no_log: True
+- name: Add hosts
+  add_host:
+    name: "{{ item.ip }}_{{ item.user }}"
+    ansible_host: "{{ item.ip }}"
+    ansible_user: "{{ item.user }}"
+    ansible_ssh_private_key_file: "/tmp/id_ssh_rsa"
+    groups: cpanelusers
+  with_items: "{{ cpanelaccounts.json.acct }}"
+  changed_when: False
+  no_log: True

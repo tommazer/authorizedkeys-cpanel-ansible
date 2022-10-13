@@ -12,13 +12,16 @@ Clone this project to your Mac:
 git clone https://github.com/tommazer/authorizedkeys-cpanel-ansible.git
 ```
 
-The file ``` tasks/cpanel-tasks.yml ``` contain the tasks run in the cPanel account. Currently there are two demo keys added to the authorized_keys file. You can add more with the following snippet:  
+The file ``` tasks/cpanel-tasks.yml ``` contain the tasks run in the cPanel account. Currently there are two demo keys added to the authorized_keys file. You can add more keys by adding to the list:  
 ```
-- name: "Add public key for demouserX"
+- name: "Add public key"
   authorized_key:
     user: "{{ ansible_user }}"
     state: present
-    key: "ssh-rsa AAAA..... demouserX@localhost"
+    key: "{{ item }}"
+  with_items:
+    - "ssh-rsa AAAAXXXX....XXXXXX"
+    - "ssh-rsa BBBBXXXX....XXXXXX"
 ```
 
 Get WHM API token with:  

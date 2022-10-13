@@ -1,9 +1,29 @@
 ---
 - name: Setup localhost
-  include: tasks/setup-localhost.yml
+  hosts: 127.0.0.1
+  connection: local
+  become: false
+  gather_facts: false
+  vars:
+    keyname: "ansiblekey{{lookup('pipe','date \"+%Y%m%d\"')}}"
+  tasks:
+    - name: Setup localhost
+      include_tasks: tasks/setup-localhost.yml
 
-- name: Run cPanel tasks
-  include: tasks/cpanel-tasks.yml
+- name: Connect to cPanel hosts
+  hosts: cpanelusers
+  become: false
+  tasks:
+    - name: Connect to cPanel hosts
+      include_tasks: tasks/cpanel-tasks.yml
 
 - name: Cleanup localhost
-  include: tasks/cleanup-localhost.yml
+  hosts: 127.0.0.1
+  connection: local
+  become: false
+  gather_facts: false
+  vars:
+    keyname: "ansiblekey{{lookup('pipe','date \"+%Y%m%d\"')}}"
+  tasks:
+    - name: Cleanup localhost
+      include_tasks: tasks/cleanup-localhost.yml
