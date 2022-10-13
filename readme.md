@@ -37,5 +37,5 @@ ansible-playbook main.yml --extra-vars="whmhostname=#WHMHOSTNAME# whmusername=#W
 
 Example:  
 ```
-ansible-playbook main.yml --extra-vars="whmhostname=s1108.myfasthosting.com whmusername=reseller1 whmtoken=BXXXV5QW2XXX82VX5NLY5XXXIL9ASGW
+ansible-playbook main.yml --extra-vars="whmhostname=s1108.myfasthosting.com whmusername=reseller1 whmtoken=BXXXV5QW2XXX82VX5NLY5XXXIL9ASGW"
 ```
